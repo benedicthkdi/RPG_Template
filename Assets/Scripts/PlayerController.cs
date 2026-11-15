@@ -9,11 +9,19 @@ public class PlayerController : MonoBehaviour
     Animator animator;
     Vector2 moveDirection = new Vector2(1, 0);
 
+    public int maxHealth = 5;
+    public int currentHealth;
+
+    public float timeInvincible = 2.0f;
+    bool isInvincible;
+    float damageCooldown;
+
     void Start()
     {
         MoveAction.Enable();
         rigidbody2d = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        currentHealth = maxHealth;
     }
 
     void Update()
@@ -29,11 +37,37 @@ public class PlayerController : MonoBehaviour
         animator.SetFloat("Look X", moveDirection.x);
         animator.SetFloat("Look Y", moveDirection.y);
         animator.SetFloat("Speed", move.magnitude);
+
+        if (isInvincible)
+        {
+            damageCooldown -= Time.deltaTime;
+            if (damageCooldown < 0)
+            {
+                isInvincible = false;
+            }
+        }
     }
 
     void FixedUpdate()
     {
         Vector2 position = (Vector2)rigidbody2d.position + move * 3.0f * Time.deltaTime;
         rigidbody2d.MovePosition(position);
+    }
+
+    public void ChangeHealth(int amount)
+    {
+        if (amount < 0)
+        {
+   	        if (isInvincible)
+   	        {
+     		    return;
+   	        }
+   	        isInvincible = true;
+   	        damageCooldown = timeInvincible;
+            animator.SetTrigger("Hit");
+        }   
+
+        currentHealth = Mathf.Clamp(currentHealth + amount, 0, maxHealth);
+        Debug.Log("Health: " + currentHealth + "/" + maxHealth);
     }
 }
