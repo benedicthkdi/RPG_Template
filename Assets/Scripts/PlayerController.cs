@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 public class PlayerController : MonoBehaviour
 {
     public InputAction MoveAction;
+    public InputAction TalkAction;
     Rigidbody2D rigidbody2d;
     Vector2 move;
     Animator animator;
@@ -16,9 +17,14 @@ public class PlayerController : MonoBehaviour
     bool isInvincible;
     float damageCooldown;
 
+    public UIHandler uiHandler;
+
+    public NonPlayerCharacter lastNonPlayerCharacter;
+
     void Start()
     {
         MoveAction.Enable();
+        TalkAction.Enable();
         rigidbody2d = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         currentHealth = maxHealth;
@@ -46,6 +52,33 @@ public class PlayerController : MonoBehaviour
                 isInvincible = false;
             }
         }
+
+        RaycastHit2D hit = Physics2D.Raycast(rigidbody2d.position + Vector2.up * 0.2f, moveDirection, 1.5f, LayerMask.GetMask("NPC"));
+        if (hit.collider != null)
+        {
+            if(lastNonPlayerCharacter == null)
+            {
+                lastNonPlayerCharacter = hit.collider.GetComponent<NonPlayerCharacter>();
+                lastNonPlayerCharacter.dialogueBuddle.SetActive(true);
+            }
+
+            if (TalkAction.WasPressedThisFrame())
+            {
+                uiHandler.DisplayDialogue(lastNonPlayerCharacter.message);
+            }
+        }
+        else if(lastNonPlayerCharacter != null)
+        {
+            lastNonPlayerCharacter.dialogueBuddle.SetActive(false);
+            lastNonPlayerCharacter = null;
+        }
+    }
+
+    void OnDrawGizmos()
+    {
+        Vector2 start = (Vector2)transform.position + Vector2.up * 0.2f;
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(start, start + moveDirection * 1.5f);
     }
 
     void FixedUpdate()
@@ -68,6 +101,7 @@ public class PlayerController : MonoBehaviour
         }   
 
         currentHealth = Mathf.Clamp(currentHealth + amount, 0, maxHealth);
+        uiHandler.SetHealthValue(currentHealth / (float) maxHealth);
         Debug.Log("Health: " + currentHealth + "/" + maxHealth);
     }
 }
